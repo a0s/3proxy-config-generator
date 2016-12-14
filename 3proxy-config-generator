@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require 'pp'
+require 'optparse'
+require 'socket'
+require_relative 'addrinfo'
+

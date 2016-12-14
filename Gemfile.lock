@@ -1,0 +1,17 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ipaddress (0.8.3)
+    terminal-table (1.7.3)
+      unicode-display_width (~> 1.1.1)
+    unicode-display_width (1.1.2)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  ipaddress
+  terminal-table
+
+BUNDLED WITH
+   1.13.6

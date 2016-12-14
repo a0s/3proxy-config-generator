@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require 'pp'
+require 'socket'
+require_relative 'addrinfo'
+require 'terminal-table'
+
+rows = []
+
+Socket.ip_address_list.sort.each do |addrinfo|
+  addr = addrinfo.to_s
+  flags = Addrinfo.ip_tests.select { |t| addrinfo.send(t) === true }.map(&:to_s).map { |s| s.split('?')[0] }.join(' ')
+  rows << [addr, flags]
+end
+
+table = Terminal::Table.new :rows => rows
+
+puts table
+

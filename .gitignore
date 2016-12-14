@@ -1,0 +1,5 @@
+.idea/
+.ruby-*
+tmp/
+._*
+.DS_Store
