@@ -1,5 +1,5 @@
 require 'socket'
-require 'ipaddr'
+require 'ipaddress'
 
 class Addrinfo
   include Comparable
@@ -15,11 +15,11 @@ class Addrinfo
   end
 
   def to_s
-    IPAddr.new(self.ip_unpack[0].split('%')[0]).to_s
+    IPAddress(self.ip_unpack[0].split('%')[0]).to_s
   end
 
   def to_string
-    IPAddr.new(self.ip_unpack[0].split('%')[0]).to_string
+    IPAddress(self.ip_unpack[0].split('%')[0]).to_string
   end
 
   def self.ip_tests

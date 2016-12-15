@@ -5,3 +5,158 @@ require 'optparse'
 require 'socket'
 require_relative 'addrinfo'
 
+def IPAddress.parse_u(i)
+  if i.is_a?(Bignum)
+    IPAddress::IPv6.parse_u128(i)
+  else
+    IPAddress::IPv4.parse_u32(i)
+  end
+end
+
+class ZproxyConfigGenerator
+  def initialize(args)
+    @args = args
+    @src_addr = []
+    @src_port = []
+    @dst_addr = []
+    @auth_iponly = []
+  end
+
+  def u32(data)
+    IPAddress::IPv4.parse_u32(data)
+  end
+
+  def u128(data)
+    IPAddress::IPv6.parse_u128(data)
+  end
+
+  def parse_ip_range(data)
+    a1, a2 = data.split('-').map { |a| IPAddress(a) }
+    fail("Wrong interval `#{data}'") if a1.class != a2.class
+    (a1.to_i..a2.to_i).to_a.map { |i| a1.ipv4? ? u32(i) : u128(i) }.map(&:to_s)
+  end
+
+  def parse_ip_range_(data)
+    a1, a2 = data.split('+')
+    a1, a2 = IPAddress(a1), a2.to_i
+    (a1.to_i...a1.to_i+a2).to_a.map { |i| a1.ipv4? ? u32(i) : u128(i) }.map(&:to_s)
+  end
+
+  def parse_port_range(data)
+    a1, a2 = data.split('-')
+    (a1.to_i..a2.to_i).to_a
+  end
+
+  def parse_port_range_(data)
+    a1, a2 = data.split('+')
+    (a1.to_i...a1.to_i+a2.to_i).to_a
+  end
+
+  def parse!
+    opt_parser = OptionParser.new do |opts|
+      opts.banner = 'Usage: 3proxy-config-generator [options]'
+
+      opts.separator ''
+      opts.separator 'Specific options:'
+
+      opts.on('--src-addr ADDR', Array,
+              'Internal addresses. Can be list, range or start+size',
+              '  a1b1::1005',
+              '  a1b1::1005,a1b1::1006',
+              '  a1b1::1005-a1b1::100a',
+              '  a1b1::1005+6 is equivalent to a1b1::1005-a1b1::100a') do |addr|
+        addr.each do |ad|
+          if ad.include?('-')
+            @src_addr += parse_ip_range(ad)
+          elsif ad.include?('+')
+            @src_addr += parse_ip_range_(ad)
+          else
+            @src_addr << IPAddress(ad).to_s
+          end
+        end
+      end
+
+      opts.on('--src-port PORT', Array,
+              'Internal ports. Can be list, range or start+size',
+              '  80',
+              '  80,8080',
+              '  8080-8084 ports from 8080 to 8084',
+              '  8080+5 is equivalent to 8080-8084') do |port|
+        port.each do |po|
+          if po.include?('-')
+            @src_port += parse_port_range(po)
+          elsif po.include?('+')
+            @src_port += parse_port_range_(po)
+          else
+            @src_port << po.to_i
+          end
+        end
+      end
+
+      opts.on('--dst-as-src',
+              'Dst address same as src address') do
+        @dst_addr = @src_addr
+      end
+
+      opts.on('--dst-addr ADDR', Array,
+              'External addresses. Can be list, range or start+size',
+              '  a1b1::1005',
+              '  a1b1::1005,a1b1::1006',
+              '  a1b1::1005-a1b1::100a',
+              '  a1b1::1005+6 is equivalent to a1b1::1005-a1b1::100a') do |addr|
+        addr.each do |ad|
+          if ad.include?('-')
+            @dst_addr += parse_ip_range(ad)
+          elsif ad.include?('+')
+            @dst_addr += parse_ip_range_(ad)
+          else
+            @dst_addr << IPAddress(ad).to_s
+          end
+        end
+      end
+
+      opts.on('--auth-iponly ADDR', Array,
+              'List of authorize ips. Can be list, range or start+size') do |addr|
+        addr.each do |ad|
+          if ad.include?('-')
+            @auth_iponly += parse_ip_range(ad)
+          elsif ad.include?('+')
+            @auth_iponly += parse_ip_range_(ad)
+          else
+            @auth_iponly << IPAddress(ad).to_s
+          end
+        end
+      end
+
+      opts.on_tail('-h', '--help', 'Show this message') do
+        puts opts
+        exit
+      end
+    end
+
+    opt_parser.parse!(@args)
+  end
+
+  def generate
+    pp @src_addr
+    puts '------'
+    pp @src_port
+    puts '------'
+    pp @dst_addr
+  end
+
+  def template
+    <<EOF
+log
+nserver 8.8.8.8
+nserver 8.8.4.4
+nscache 65536
+setgid 65534
+setuid 65534
+EOF
+  end
+end
+
+cfg_gen = ZproxyConfigGenerator.new(ARGV)
+cfg_gen.parse!
+puts cfg_gen.generate
