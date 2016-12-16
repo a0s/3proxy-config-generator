@@ -6,6 +6,18 @@
     bundle install --deployment
     bundle exec ./3proxy-config-generator -h
     
+##Get list of ips
+    > bundle exec ./ips
+    +---------------------------+---------------------+
+    | 10.18.0.5                 | ipv4 ipv4_private   |
+    | 127.0.0.1                 | ipv4 ipv4_loopback  |
+    | 168.16.12.73              | ipv4                |
+    | 2a03:b2c0:2:a0::1363:f000 | ipv6                |
+    | 2a03:b2c0:2:a0::1363:f001 | ipv6                |
+    | ::1                       | ipv6 ipv6_loopback  |
+    | fe83::a2cb:8aff:fea1:1229 | ipv6 ipv6_linklocal |
+    +---------------------------+---------------------+
+
 #Examples
 ##One ip4 with ports to many ip6
 
