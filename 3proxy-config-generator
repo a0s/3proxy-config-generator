@@ -3,6 +3,7 @@
 require 'pp'
 require 'optparse'
 require 'socket'
+require 'active_support/core_ext/array/wrap'
 require_relative 'addrinfo'
 
 def IPAddress.parse_u(i)
@@ -12,6 +13,8 @@ def IPAddress.parse_u(i)
     IPAddress::IPv4.parse_u32(i)
   end
 end
+
+HostPort = Struct.new(:host, :port)
 
 class ZproxyConfigGenerator
   def initialize(args)
@@ -52,14 +55,14 @@ class ZproxyConfigGenerator
     (a1.to_i...a1.to_i+a2.to_i).to_a
   end
 
-  def parse!
+  def parse
     opt_parser = OptionParser.new do |opts|
       opts.banner = 'Usage: 3proxy-config-generator [options]'
 
       opts.separator ''
       opts.separator 'Specific options:'
 
-      opts.on('--src-addr ADDR', Array,
+      opts.on('-a', '--src-addr ADDR', Array,
               'Internal addresses. Can be list, range or start+size',
               '  a1b1::1005',
               '  a1b1::1005,a1b1::1006',
@@ -76,7 +79,7 @@ class ZproxyConfigGenerator
         end
       end
 
-      opts.on('--src-port PORT', Array,
+      opts.on('-p', '--src-port PORT', Array,
               'Internal ports. Can be list, range or start+size',
               '  80',
               '  80,8080',
@@ -98,7 +101,7 @@ class ZproxyConfigGenerator
         @dst_addr = @src_addr
       end
 
-      opts.on('--dst-addr ADDR', Array,
+      opts.on('-d', '--dst-addr ADDR', Array,
               'External addresses. Can be list, range or start+size',
               '  a1b1::1005',
               '  a1b1::1005,a1b1::1006',
@@ -115,8 +118,8 @@ class ZproxyConfigGenerator
         end
       end
 
-      opts.on('--auth-iponly ADDR', Array,
-              'List of authorize ips. Can be list, range or start+size') do |addr|
+      opts.on('-i', '--auth-iponly ADDR', Array,
+              'List of authorized ips. Can be list, range or start+size') do |addr|
         addr.each do |ad|
           if ad.include?('-')
             @auth_iponly += parse_ip_range(ad)
@@ -134,29 +137,103 @@ class ZproxyConfigGenerator
       end
     end
 
-    opt_parser.parse!(@args)
+    opt_parser.parse(@args)
+    self
   end
 
-  def generate
-    pp @src_addr
-    puts '------'
-    pp @src_port
-    puts '------'
-    pp @dst_addr
+  def divide
+    inputs = []
+    @src_addr.each do |sa|
+      @src_port.each do |sp|
+        inputs << HostPort.new(sa, sp)
+      end
+    end
+    outputs = @dst_addr.map { |da| HostPort.new(da) }
+
+    @devided = {}
+
+    #        /-> OUTPUT
+    # INPUT ---> OUTPUT   ratio > 1
+    #        \-> OUTPUT
+    #
+    # INPUT -\
+    # INPUT ---> OUTPUT   ratio <= 1
+    # INPUT -/
+    ratio = outputs.size.to_f / inputs.size
+
+    if ratio > 1
+      outputs.each_with_index do |output1, idx|
+        input1 = Array.wrap(inputs[(idx / ratio).floor])
+        @devided[input1] ||= []
+        @devided[input1] << output1
+      end
+    else
+      inputs.each_with_index do |input1, idx|
+        output1 = Array.wrap(outputs[(idx * ratio).floor])
+        @devided[output1] ||= []
+        @devided[output1] << input1
+      end
+      @devided = @devided.invert
+    end
+
+    @devided
   end
 
-  def template
+  def to_s
+    rules = []
+
+    @devided.each do |src, dst|
+      if dst.size > 1
+        if dst.all? { |dst1| IPAddress(dst1.host).ipv6? }
+          resolver = '-6'
+        elsif dst.all? { |dst1| IPAddress(dst1.host).ipv4? }
+          resolver = '-4'
+        else
+          resolver = '-64'
+        end
+
+        src.each do |src1|
+          weights = Array.new(dst.size) { (1000.0 / dst.size).to_i }
+          weights[0] = 1000 - weights[1..-1].inject(:+) if weights.size > 2
+          rule = []
+          rule << 'auth iponly'
+          rule << 'allow * %s' % [@auth_iponly.join(',')]
+          dst.each_with_index do |dst1, idx|
+            rule << 'parent %s extip %s 0' % [weights[idx], dst1.host]
+          end
+          rule << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
+          rule << 'flush'
+          rules << rule.join("\n")
+        end
+      else
+        Array(src).each do |src1|
+          rule = []
+          rule << 'auth iponly'
+          rule << 'allow * %s' % [@auth_iponly.join(',')]
+          rule << 'socks -i%s -p%s -e%s %s' % [src1.host, src1.port, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4']
+          rule << 'flush'
+          rules << rule.join("\n")
+        end
+      end
+    end
+
     <<EOF
 log
+nserver 2001:4860:4860::8888
+nserver 2001:4860:4860::8844
 nserver 8.8.8.8
 nserver 8.8.4.4
+nscache6 65536
 nscache 65536
 setgid 65534
 setuid 65534
+#{"\n" + rules.join("\n\n")}
+
 EOF
   end
 end
 
 cfg_gen = ZproxyConfigGenerator.new(ARGV)
-cfg_gen.parse!
-puts cfg_gen.generate
+cfg_gen.parse
+cfg_gen.divide
+puts cfg_gen
