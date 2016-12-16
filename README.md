@@ -21,7 +21,8 @@
 #Examples
 ##One ip4 with ports to many ip6
 
-    bundle exec ./3proxy-config-generator --src-addr 188.176.52.33 --src-port 40000+4 --dst-addr 2a03:b0c0:2:d0::1073:f000+4 --auth-iponly 138.40.22.189   
+    bundle exec ./3proxy-config-generator --src-addr 188.176.52.33 --src-port 40000+4 \
+    --dst-addr 2a03:b0c0:2:d0::1073:f000+4 --auth-iponly 138.40.22.189   
 
 Result
 
@@ -57,7 +58,8 @@ Result
     
 ##Many ip6
     
-    bundle exec ./3proxy-config-generator --src-addr a2a2::e000-a2a2::e003 --src-port 40000 --dst-as-src --auth-iponly 138.40.22.189
+    bundle exec ./3proxy-config-generator --src-addr a2a2::e000-a2a2::e003 --src-port 40000 \
+    --dst-as-src --auth-iponly 138.40.22.189
 
 Result
     
@@ -93,7 +95,8 @@ Result
 
 ##Random output
 
-    bundle exec ./3proxy-config-generator --src-addr aaaa::e000 --src-port 40000 --dst-addr cccc::0000+4  --auth-iponly 138.40.22.189
+    bundle exec ./3proxy-config-generator --src-addr aaaa::e000 --src-port 40000 \
+    --dst-addr cccc::0000+4  --auth-iponly 138.40.22.189
     
 Result
 
