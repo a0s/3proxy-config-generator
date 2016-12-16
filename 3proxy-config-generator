@@ -219,10 +219,10 @@ class ZproxyConfigGenerator
 
     <<EOF
 log
-nserver 2001:4860:4860::8888
-nserver 2001:4860:4860::8844
 nserver 8.8.8.8
 nserver 8.8.4.4
+nserver 2001:4860:4860::8888
+nserver 2001:4860:4860::8844
 nscache6 65536
 nscache 65536
 setgid 65534
