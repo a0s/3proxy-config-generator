@@ -14,7 +14,7 @@ case "$1" in
    start)
        echo Starting 3Proxy
 
-       /root/3proxy/src/3proxy /root/3proxy-config-generator/3proxy.cfg
+       /root/3proxy/src/3proxy /root/3proxy.cfg
        ;;
 
    stop)
