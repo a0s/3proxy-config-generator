@@ -182,6 +182,12 @@ class ZproxyConfigGenerator
   def to_s
     rules = []
 
+    pp @devided
+
+    rule = []
+    rule << 'auth iponly'
+    rule << 'allow * %s' % [@auth_iponly.join(',')]
+
     @devided.each do |src, dst|
       if dst.size > 1
         if dst.all? { |dst1| IPAddress(dst1.host).ipv6? }
@@ -194,29 +200,22 @@ class ZproxyConfigGenerator
 
         weights = Array.new(dst.size) { (1000.0 / dst.size).to_i }
         weights[0] = 1000 - weights[1..-1].inject(:+) if weights.size > 2
-        rule = []
-        rule << 'auth iponly'
-        rule << 'allow * %s' % [@auth_iponly.join(',')]
         dst.each_with_index do |dst1, idx|
           rule << 'parent %s extip %s 0' % [weights[idx], dst1.host]
         end
         src.each do |src1|
           rule << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
         end
-        rule << 'flush'
-        rules << rule.join("\n")
 
       else
-        rule = []
-        rule << 'auth iponly'
-        rule << 'allow * %s' % [@auth_iponly.join(',')]
         Array(src).each do |src1|
           rule << 'socks -i%s -p%s -e%s %s' % [src1.host, src1.port, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4']
         end
-        rule << 'flush'
-        rules << rule.join("\n")
       end
     end
+
+    rule << 'flush'
+    rules << rule.join("\n")
 
     template =
         <<EOF
