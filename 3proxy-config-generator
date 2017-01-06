@@ -192,19 +192,20 @@ class ZproxyConfigGenerator
           resolver = '-64'
         end
 
-        src.each do |src1|
-          weights = Array.new(dst.size) { (1000.0 / dst.size).to_i }
-          weights[0] = 1000 - weights[1..-1].inject(:+) if weights.size > 2
-          rule = []
-          rule << 'auth iponly'
-          rule << 'allow * %s' % [@auth_iponly.join(',')]
-          dst.each_with_index do |dst1, idx|
-            rule << 'parent %s extip %s 0' % [weights[idx], dst1.host]
-          end
-          rule << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
-          rule << 'flush'
-          rules << rule.join("\n")
+        weights = Array.new(dst.size) { (1000.0 / dst.size).to_i }
+        weights[0] = 1000 - weights[1..-1].inject(:+) if weights.size > 2
+        rule = []
+        rule << 'auth iponly'
+        rule << 'allow * %s' % [@auth_iponly.join(',')]
+        dst.each_with_index do |dst1, idx|
+          rule << 'parent %s extip %s 0' % [weights[idx], dst1.host]
         end
+        src.each do |src1|
+          rule << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
+        end
+        rule << 'flush'
+        rules << rule.join("\n")
+
       else
         rule = []
         rule << 'auth iponly'
