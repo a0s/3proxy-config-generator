@@ -182,8 +182,6 @@ class ZproxyConfigGenerator
   def to_s
     rules = []
 
-    pp @devided
-
     rule = []
     rule << 'auth iponly'
     rule << 'allow * %s' % [@auth_iponly.join(',')]
