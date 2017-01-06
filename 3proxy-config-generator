@@ -206,14 +206,14 @@ class ZproxyConfigGenerator
           rules << rule.join("\n")
         end
       else
+        rule = []
+        rule << 'auth iponly'
+        rule << 'allow * %s' % [@auth_iponly.join(',')]
         Array(src).each do |src1|
-          rule = []
-          rule << 'auth iponly'
-          rule << 'allow * %s' % [@auth_iponly.join(',')]
           rule << 'socks -i%s -p%s -e%s %s' % [src1.host, src1.port, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4']
-          rule << 'flush'
-          rules << rule.join("\n")
         end
+        rule << 'flush'
+        rules << rule.join("\n")
       end
     end
 
