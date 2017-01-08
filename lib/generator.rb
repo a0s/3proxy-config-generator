@@ -15,6 +15,7 @@ class Generator
     @src_port = []
     @dst_addr = []
     @auth_iponly = []
+    @http_proxy = nil
   end
 
   def u32(data)
@@ -123,10 +124,15 @@ class Generator
         end
       end
 
-      opts.on_tail('-h', '--help', 'Show this message') do
-        puts opts
-        exit
+      opts.on('--http-proxy [+|-]PORT', String,
+              'Enable http proxy with port displace from socks5 port',
+              '  --http-proxy 1000',
+              '  --http-proxy +2000',
+              '  --http-proxy=-10000') do |port|
+        @http_proxy = port.to_i
       end
+
+      opts.on_tail('-h', '--help', 'Show this message')
     end
 
     opt_parser.parse(@argv)
@@ -198,11 +204,13 @@ class Generator
         end
         src.each do |src1|
           rules << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
+          rules << 'proxy -i%s -p%s %s' % [src1.host, src1.port + @http_proxy, resolver] if @http_proxy
         end
 
       else
         Array(src).each do |src1|
           rules << 'socks -i%s -p%s -e%s %s' % [src1.host, src1.port, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4']
+          rules << 'proxy -i%s -p%s -e%s %s' % [src1.host, src1.port + @http_proxy, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4'] if @http_proxy
         end
       end
     end
