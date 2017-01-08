@@ -213,7 +213,7 @@ class Generator
   def to_s
     str = ''
     str += @template if @template.present?
-    str += "\n\n"
+    str += "\n"
     str + rules.join("\n")
   end
 end
