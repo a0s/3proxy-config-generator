@@ -4,10 +4,10 @@
     git clone https://github.com/orangeudav/3proxy-config-generator.git
     cd 3proxy-config-generator
     bundle install --deployment
-    bundle exec ./3proxy-config-generator -h
+    bundle exec ./bin/generator -h
     
 ##Get list of ips
-    > bundle exec ./ips
+    > bundle exec ./bin/ips
     +---------------------------+---------------------+
     | 10.18.0.5                 | ipv4 ipv4_private   |
     | 127.0.0.1                 | ipv4 ipv4_loopback  |
@@ -21,7 +21,7 @@
 #Examples
 ##One ip4 with ports to many ip6
 
-    bundle exec ./3proxy-config-generator --src-addr 188.176.52.33 --src-port 40000+4 \
+    bundle exec ./bin/generator --src-addr 188.176.52.33 --src-port 40000+4 \
     --dst-addr 2a03:b0c0:2:d0::1073:f000+4 --auth-iponly 138.40.22.189   
 
 Result
@@ -58,7 +58,7 @@ Result
     
 ##Many ip6
     
-    bundle exec ./3proxy-config-generator --src-addr a2a2::e000-a2a2::e003 --src-port 40000 \
+    bundle exec ./bin/generator --src-addr a2a2::e000-a2a2::e003 --src-port 40000 \
     --dst-as-src --auth-iponly 138.40.22.189
 
 Result
@@ -95,8 +95,8 @@ Result
 
 ##Random output
 
-    bundle exec ./3proxy-config-generator --src-addr aaaa::e000 --src-port 40000 \
-    --dst-addr cccc::0000+4  --auth-iponly 138.40.22.189
+    bundle exec ./bin/generator --src-addr aaaa::e000 --src-port 40000 \
+    --dst-addr cccc::0000+4 --auth-iponly 138.40.22.189
     
 Result
 

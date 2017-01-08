@@ -1,24 +1,16 @@
-#!/usr/bin/env ruby
-
-require 'pp'
-require 'optparse'
-require 'socket'
-require 'active_support/core_ext/array/wrap'
-require_relative 'addrinfo'
-
-def IPAddress.parse_u(i)
-  if i.is_a?(Bignum)
-    IPAddress::IPv6.parse_u128(i)
-  else
-    IPAddress::IPv4.parse_u32(i)
-  end
-end
-
 HostPort = Struct.new(:host, :port)
 
-class ZproxyConfigGenerator
-  def initialize(args)
-    @args = args
+class Generator
+  def self.generate(opts = {})
+    c = new(opts)
+    c.parse
+    c.divide
+    c
+  end
+
+  def initialize(opts = {})
+    @argv = opts[:argv] || []
+    @template = opts[:template] || ''
     @src_addr = []
     @src_port = []
     @dst_addr = []
@@ -57,7 +49,7 @@ class ZproxyConfigGenerator
 
   def parse
     opt_parser = OptionParser.new do |opts|
-      opts.banner = 'Usage: 3proxy-config-generator [options]'
+      opts.banner = 'Usage: generator [options]'
 
       opts.separator ''
       opts.separator 'Specific options:'
@@ -137,7 +129,8 @@ class ZproxyConfigGenerator
       end
     end
 
-    opt_parser.parse(@args)
+    opt_parser.parse(@argv)
+
     self
   end
 
@@ -176,7 +169,7 @@ class ZproxyConfigGenerator
       @devided = @devided.invert
     end
 
-    @devided
+    self
   end
 
   def to_s
@@ -215,26 +208,6 @@ class ZproxyConfigGenerator
     rule << 'flush'
     rules << rule.join("\n")
 
-    template =
-        <<EOF
-daemon
-log /var/log/3proxy.log
-logformat "- +_L%%t.%%. %%N.%%p %%E %%U %%C:%%c %%R:%%r %%O %%I %%h %%T"
-nserver 8.8.8.8
-nserver 8.8.4.4
-nserver 2001:4860:4860::8888
-nserver 2001:4860:4860::8844
-nscache6 65536
-nscache 65536
-setgid 65534
-setuid 65534
-%s
-EOF
-    template % ["\n" + rules.join("\n\n")]
+    [@template, rules.join("\n\n")].join("\n")
   end
 end
-
-cfg_gen = ZproxyConfigGenerator.new(ARGV)
-cfg_gen.parse
-cfg_gen.divide
-puts cfg_gen

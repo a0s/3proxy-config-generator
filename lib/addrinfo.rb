@@ -1,6 +1,3 @@
-require 'socket'
-require 'ipaddress'
-
 class Addrinfo
   include Comparable
 

@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+require_relative '../lib/environment'
+
+template = <<EOF
+daemon
+log /var/log/3proxy.log
+logformat "- +_L%%t.%%. %%N.%%p %%E %%U %%C:%%c %%R:%%r %%O %%I %%h %%T"
+nserver 8.8.8.8
+nserver 8.8.4.4
+nserver 2001:4860:4860::8888
+nserver 2001:4860:4860::8844
+nscache6 65536
+nscache 65536
+setgid 65534
+setuid 65534
+EOF
+
+puts Generator.generate(argv: ARGV, template: template)

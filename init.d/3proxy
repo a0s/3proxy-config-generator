@@ -10,11 +10,16 @@
 # Description: starts 3proxy
 ### END INIT INFO
 
+set -e
+
+DAEMON=/root/3proxy/src/3proxy
+CONFIG=/root/3proxy.cfg
+
 case "$1" in
    start)
        echo Starting 3Proxy
 
-       /root/3proxy/src/3proxy /root/3proxy.cfg
+       ${DAEMON} ${CONFIG}
        ;;
 
    stop)
