@@ -10,7 +10,7 @@ class Generator
 
   def initialize(opts = {})
     @argv = opts[:argv] || []
-    @template = opts[:template] || ''
+    @template = opts[:template]
     @src_addr = []
     @src_port = []
     @dst_addr = []
@@ -134,6 +134,14 @@ class Generator
     self
   end
 
+  #        /-> OUTPUT
+  # INPUT ---> OUTPUT   ratio > 1
+  #        \-> OUTPUT
+  #
+  # INPUT -\
+  # INPUT ---> OUTPUT   ratio <= 1
+  # INPUT -/
+
   def divide
     inputs = []
     @src_addr.each do |sa|
@@ -145,13 +153,6 @@ class Generator
 
     @devided = {}
 
-    #        /-> OUTPUT
-    # INPUT ---> OUTPUT   ratio > 1
-    #        \-> OUTPUT
-    #
-    # INPUT -\
-    # INPUT ---> OUTPUT   ratio <= 1
-    # INPUT -/
     ratio = outputs.size.to_f / inputs.size
 
     if ratio > 1
@@ -172,12 +173,13 @@ class Generator
     self
   end
 
-  def to_s
+  def rules
     rules = []
 
-    rule = []
-    rule << 'auth iponly'
-    rule << 'allow * %s' % [@auth_iponly.join(',')]
+    if @auth_iponly.present?
+      rules << 'auth iponly'
+      rules << 'allow * %s' % [@auth_iponly.join(',')]
+    end
 
     @devided.each do |src, dst|
       if dst.size > 1
@@ -192,22 +194,26 @@ class Generator
         weights = Array.new(dst.size) { (1000.0 / dst.size).to_i }
         weights[0] = 1000 - weights[1..-1].inject(:+) if weights.size > 2
         dst.each_with_index do |dst1, idx|
-          rule << 'parent %s extip %s 0' % [weights[idx], dst1.host]
+          rules << 'parent %s extip %s 0' % [weights[idx], dst1.host]
         end
         src.each do |src1|
-          rule << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
+          rules << 'socks -i%s -p%s %s' % [src1.host, src1.port, resolver]
         end
 
       else
         Array(src).each do |src1|
-          rule << 'socks -i%s -p%s -e%s %s' % [src1.host, src1.port, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4']
+          rules << 'socks -i%s -p%s -e%s %s' % [src1.host, src1.port, dst[0].host, IPAddress(dst[0].host).ipv6? ? '-6' : '-4']
         end
       end
     end
 
-    rule << 'flush'
-    rules << rule.join("\n")
+    rules << 'flush'
+  end
 
-    [@template, rules.join("\n\n")].join("\n")
+  def to_s
+    str = ''
+    str += @template if @template.present?
+    str += "\n\n"
+    str + rules.join("\n")
   end
 end
