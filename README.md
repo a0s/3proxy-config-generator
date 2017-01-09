@@ -1,7 +1,7 @@
 #Usage
 
     apt-get install ruby ruby-bundler git
-    git clone https://github.com/orangeudav/3proxy-config-generator.git
+    git clone https://github.com/a0s/3proxy-config-generator.git
     cd 3proxy-config-generator
     bundle install --deployment
     bundle exec ./bin/generator -h
